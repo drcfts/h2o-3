@@ -175,23 +175,6 @@ public class FramesHandler<I extends FramesHandler.Frames, S extends SchemaV3<I,
     return s;
   }
 
-  // TODO: return VecSummaryV4
-  @SuppressWarnings("unused") // called through reflection by RequestServer
-  public FramesV3 columnSummary(int version, FramesV3 s) {
-    Frame frame = getFromDKV("key", s.frame_id.key()); // safe
-    Vec vec = frame.vec(s.column);
-    if (null == vec)
-      throw new H2OColumnNotFoundArgumentException("column", s.frame_id.toString(), s.column);
-
-    // Compute second pass of rollups: the histograms.
-    vec.bins();
-
-    // Cons up our result
-    s.frames = new FrameV3[1];
-    s.frames[0] = new FrameV3(new Frame(new String[]{s.column}, new Vec[]{vec}), s.row_offset, s.row_count, s.column_offset, s.column_count);
-    return s;
-  }
-
   // TODO: return everything but the second level of rollups (histograms); currently mins and maxes are missing
   /** Return a single frame. */
   @SuppressWarnings("unused") // called through reflection by RequestServer

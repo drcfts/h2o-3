@@ -5,7 +5,9 @@ import water.Futures;
 import water.Key;
 import water.MemoryManager;
 import water.api.API;
+import water.api.FramesHandler;
 import water.api.schemas3.KeyV3.FrameKeyV3;
+import water.exceptions.H2OColumnNotFoundArgumentException;
 import water.fvec.ByteVec;
 import water.fvec.Chunk;
 import water.fvec.Frame;
@@ -333,5 +335,22 @@ public class FrameV3 extends FrameBaseV3<Frame, FrameV3> {
       Chunk chk = c._vec.chunkForRow(row_offset);
       return PrettyPrint.number(chk, d, precision);
     }
+  }
+
+// TODO: return VecSummaryV4
+  @SuppressWarnings("unused") // called through reflection by RequestServer
+  public static FramesV3 columnSummary(int version, FramesV3 s) {
+    Frame frame = FramesHandler.getFromDKV("key", s.frame_id.key()); // safe
+    Vec vec = frame.vec(s.column);
+    if (null == vec)
+      throw new H2OColumnNotFoundArgumentException("column", s.frame_id.toString(), s.column);
+
+    // Compute second pass of rollups: the histograms.
+    vec.bins();
+
+    // Cons up our result
+    s.frames = new FrameV3[1];
+    s.frames[0] = new FrameV3(new Frame(new String[]{s.column}, new Vec[]{vec}), s.row_offset, s.row_count, s.column_offset, s.column_count);
+    return s;
   }
 }
